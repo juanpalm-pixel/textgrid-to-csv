@@ -75,3 +75,10 @@ start,stop,name,tier
 0      0  5.537099     z    Mary
 >>> 
 ```
+
+## for my own example
+>>> import pandas as pd
+>>> import textgrid
+>>> tgrid = textgrid.read_textgrid(r"C:\Users\pablo\OneDrive\Desktop\Functions\textgrid-to-csv\Focus-PL-4reps.TextGrid", fileEncoding="utf-16")
+>>> tgrid
+>>> [Entry(start=0.0, stop=54.3657550895206, name='', tier='Phonological'), ...
