@@ -1,6 +1,6 @@
 
 
-echo Setting up environment and running textgrid.py...
+echo Setting up environment...
 rem setlocal makes any environment changes in this script local to the batch file, so they do not leak out into your shell session.
 rem e.g. 
 rem set MYVAR=global
@@ -31,6 +31,22 @@ if errorlevel 1 (
     echo textgrid is already installed, skipping install.
 )
 
+echo Installing graph-cli...
+python -m pip install graph-cli
+if errorlevel 1 (
+    echo PyPI install failed, installing graph-cli from local source...
+    pushd "%~dp0graph-cli-master\graph_cli"
+    python -m pip install .
+    if errorlevel 1 exit /b 1
+    popd
+)
+
 echo Verifying imports...
-python -c "import pandas as pd; import textgrid; from pathlib import Path; print('Imports OK')"
+python -c "import pandas as pd; import textgrid; import graph_cli; from pathlib import Path; print('Imports OK')"
 if errorlevel 1 exit /b 1
+
+echo Verifying graph command...
+graph --help >nul 2>&1
+if errorlevel 1 exit /b 1
+
+echo Setup complete.
