@@ -3,13 +3,14 @@ import csv
 import re
 
 # Add as many files as you want here
-FILES = [
+FILES1 = [
     Path("output/Intensity.csv"),
     Path("output/F0.csv"),
 ]
 
-for path in FILES:
+for path in FILES1:
     rows_out = []
+    stem = path.stem.lower()
 
     with path.open("r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -26,18 +27,24 @@ for path in FILES:
                 point = raw
                 point = re.sub(r"\.\)$", "", point).strip()
                 value = ""
+
+            time_value = f"{float(row.get('start', 0.0)):.3f}"
+
+            if value:
+                if stem == "f0":
+                    value = f"{float(value):.0f}"
+                elif stem == "intensity":
+                    value = f"{float(value):.1f}"
             
             rows_out.append(
                 {
-                    "time": row.get("start", ""),
+                    "time": time_value,
                     "point": point,
                     "value": value,
                 }
             )
 
         # Add extra columns by file type
-        stem = path.stem.lower()
-
         if stem == "f0":
             # list: 1..3 each 50 (total cycle length 150)
             list_pattern = [1] * 50 + [2] * 50 + [3] * 50
@@ -77,3 +84,89 @@ for path in FILES:
         writer.writerows(rows_out)
 
     print(f"Done: {path} -> {out_path}")
+
+# Keep this separate so FILES1 behavior stays unchanged
+FILES2 = [
+    Path("output/PW.csv"),
+    Path("output/Syllable.csv"),  
+]
+
+PW_ALLOWED = {"Wysłali", "dziecko", "na dwór", "bez czapki", "sła", "dziec", "na", "czap"}
+
+for path in FILES2:
+    rows_out = []
+
+    with path.open("r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        fieldnames = reader.fieldnames or []
+
+        if "name" not in fieldnames:
+            raise ValueError(f"'name' column not found in {path}")
+
+        for row in reader:
+            # normalize whitespace so values like "Wysłali " still match
+            label = " ".join((row.get("name") or "").split())
+            if label in PW_ALLOWED:
+                row["name"] = label
+                row["start"] = f"{float(row['start']):.3f}"
+                row["stop"] = f"{float(row['stop']):.3f}"
+                rows_out.append(row)
+
+    # Add patterns after PW is cleaned
+    list_pattern = [1] * 20 + [2] * 20 + [3] * 20
+    focus_pattern = ["BF"] * 4 + ["NF1"] * 4 + ["NF2"] * 4 + ["NF3"] * 4 + ["NF4"] * 4
+
+    for i, r in enumerate(rows_out):
+        r["list"] = list_pattern[i % len(list_pattern)]
+        r["focus"] = focus_pattern[i % len(focus_pattern)]
+
+    # Save filtered + enriched output, keep original untouched
+    out_path = path.with_name(path.stem + "_cleaned.csv")
+    with out_path.open("w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["start", "stop", "name", "tier", "list", "focus"]
+        )
+        writer.writeheader()
+        writer.writerows(rows_out)
+
+    print(f"Done: {path} -> {out_path}")
+
+FILES3 = [Path("output/List Boundary.csv")]
+
+for input_path in FILES3:
+    rows_out = []
+
+    with input_path.open("r", newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+
+        if "name" not in (reader.fieldnames or []):
+            raise ValueError(f"'name' column not found in {input_path}")
+
+        for row in reader:
+            label = (row.get("name") or "").strip()
+
+            # Delete rows where name matches [word]
+            if re.fullmatch(r"\[\w*\]", label):
+                continue
+
+            start_val = float(row["start"])
+            stop_val = float(row["stop"])
+            duration_val = stop_val - start_val
+
+            row["name"] = label
+            row["start"] = f"{start_val:.3f}"
+            row["stop"] = f"{stop_val:.3f}"
+            row["duration"] = f"{duration_val:.3f}"
+            rows_out.append(row)
+
+    output_path = input_path.with_name(f"{input_path.stem}_cleaned.csv")
+    with output_path.open("w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["start", "stop", "duration", "name", "tier"]
+        )
+        writer.writeheader()
+        writer.writerows(rows_out)
+
+    print(f"Done: {input_path} -> {output_path}")

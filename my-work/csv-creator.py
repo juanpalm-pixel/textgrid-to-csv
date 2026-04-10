@@ -9,7 +9,8 @@ for e in tgrid:
     if e.tier not in ordered_tiers:
         ordered_tiers.append(e.tier)
 
-for i, tier_name in enumerate(ordered_tiers[2:4], start=1):
+
+for tier_name in ordered_tiers[:7]:
     tier_rows = [e for e in tgrid if e.tier == tier_name]
     out_file = OUTPUT_DIR / f"{tier_name}.csv"
     textgrid.write_csv(tier_rows, str(out_file), meta=False)
