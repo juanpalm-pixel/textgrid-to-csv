@@ -91,7 +91,7 @@ FILES2 = [
     Path("output/csv/Syllable.csv"),  
 ]
 
-PW_ALLOWED = {"Wysłali", "dziecko", "na dwór", "bez czapki", "WYSŁALI", "DZIECKO", "NA DWÓR", "BEZ CZAPKI","sła", "dziec", "na", "czap"}
+PW_ALLOWED = {"Wysłali", "dziecko", "na dwór", "bez czapki", "WYSŁALI", "DZIECKO", "NA DWÓR", "bez CZAPKI","sła", "dziec", "na", "czap"}
 
 for path in FILES2:
     rows_out = []
@@ -109,12 +109,12 @@ for path in FILES2:
             if label in PW_ALLOWED:
                 start_val = float(row["start"])
                 stop_val = float(row["stop"])
-                duration_val = stop_val - start_val
+                duration_val = (stop_val - start_val) * 1000  # convert to ms
 
                 row["name"] = label
                 row["start"] = f"{start_val:.3f}"
                 row["stop"] = f"{stop_val:.3f}"
-                row["duration"] = f"{duration_val:.3f}"
+                row["duration"] = f"{duration_val:.1f}"  # ms typically needs fewer decimals
                 rows_out.append(row)
 
     # Add patterns after PW/Syllable is cleaned
@@ -160,12 +160,12 @@ for input_path in FILES3:
 
             start_val = float(row["start"])
             stop_val = float(row["stop"])
-            duration_val = stop_val - start_val
+            duration_val = (stop_val - start_val) * 1000  # convert to ms
 
             row["name"] = label
             row["start"] = f"{start_val:.3f}"
             row["stop"] = f"{stop_val:.3f}"
-            row["duration"] = f"{duration_val:.3f}"
+            row["duration"] = f"{duration_val:.1f}"  # ms typically needs fewer decimals
             rows_out.append(row)
     # Rename remaining rows to List 1, List 2, ...
     for i, row in enumerate(rows_out, start=1):
