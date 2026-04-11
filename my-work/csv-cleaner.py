@@ -4,8 +4,8 @@ import re
 
 # Add as many files as you want here
 FILES1 = [
-    Path("output/Intensity.csv"),
-    Path("output/F0.csv"),
+    Path("output/csv/Intensity.csv"),
+    Path("output/csv/F0.csv"),
 ]
 
 for path in FILES1:
@@ -87,8 +87,8 @@ for path in FILES1:
 
 # Keep this separate so FILES1 behavior stays unchanged
 FILES2 = [
-    Path("output/PW.csv"),
-    Path("output/Syllable.csv"),  
+    Path("output/csv/PW.csv"),
+    Path("output/csv/Syllable.csv"),  
 ]
 
 PW_ALLOWED = {"Wysłali", "dziecko", "na dwór", "bez czapki", "sła", "dziec", "na", "czap"}
@@ -132,7 +132,7 @@ for path in FILES2:
 
     print(f"Done: {path} -> {out_path}")
 
-FILES3 = [Path("output/List Boundary.csv")]
+FILES3 = [Path("output/csv/List Boundary.csv")]
 
 for input_path in FILES3:
     rows_out = []
