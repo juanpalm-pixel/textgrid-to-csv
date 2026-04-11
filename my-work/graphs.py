@@ -155,7 +155,7 @@ def plot_list_boundary_horizontal(graph_number: int) -> int:
     plt.barh(y_labels, x_vals, color=bar_colors)    
     plt.gca().invert_yaxis()
     plt.title("List Boundary")
-    plt.xlabel("Duration (s)")
+    plt.xlabel("Duration (ms)")
     plt.ylabel("Segment")
     plt.grid(True, axis="x", linestyle="--", alpha=0.35)
 
@@ -220,7 +220,7 @@ def plot_stacked_duration_horizontal(
                     plt.text(
                         left + width / 2.0,
                         row_index,
-                        f"{dur:.3f}s",
+                        f"{int(dur)} ms",
                         ha="center",
                         va="center",
                         fontsize=8,
@@ -229,10 +229,11 @@ def plot_stacked_duration_horizontal(
 
                 left += width
 
-        plt.title(f"{dataset_key.upper()} - {focus_title(focus)}")
-        plt.xlabel("Percent of Total Duration (%)" if normalize else "Duration (s)")
+        plt.title(f"{focus_title(focus)}")
+        plt.xlabel("Percent of Total Duration (%)" if normalize else "Duration (ms)")
         plt.ylabel("List")
         plt.grid(True, axis="x", linestyle="--", alpha=0.35)
+        plt.gca().invert_yaxis()
 
         if normalize:
             plt.xlim(0, 100)
