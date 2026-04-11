@@ -62,7 +62,7 @@ for path in FILES1:
 
         elif stem == "intensity":
             # list: same as pattern1 in R (1..3 each 50), truncated to n rows
-            list_pattern = [1] * 50 + [2] * 50 + [3] * 50
+            list_pattern = [1] * 20 + [2] * 20 + [3] * 20
 
             # focus: BF/NF1/NF2/NF3/NF4 each 4 (cycle length 20), repeated to n rows
             focus_pattern = ["BF"] * 4 + ["NF1"] * 4 + ["NF2"] * 4 + ["NF3"] * 4 + ["NF4"] * 4
@@ -107,12 +107,17 @@ for path in FILES2:
             # normalize whitespace so values like "Wysłali " still match
             label = " ".join((row.get("name") or "").split())
             if label in PW_ALLOWED:
+                start_val = float(row["start"])
+                stop_val = float(row["stop"])
+                duration_val = stop_val - start_val
+
                 row["name"] = label
-                row["start"] = f"{float(row['start']):.3f}"
-                row["stop"] = f"{float(row['stop']):.3f}"
+                row["start"] = f"{start_val:.3f}"
+                row["stop"] = f"{stop_val:.3f}"
+                row["duration"] = f"{duration_val:.3f}"
                 rows_out.append(row)
 
-    # Add patterns after PW is cleaned
+    # Add patterns after PW/Syllable is cleaned
     list_pattern = [1] * 20 + [2] * 20 + [3] * 20
     focus_pattern = ["BF"] * 4 + ["NF1"] * 4 + ["NF2"] * 4 + ["NF3"] * 4 + ["NF4"] * 4
 
@@ -120,12 +125,11 @@ for path in FILES2:
         r["list"] = list_pattern[i % len(list_pattern)]
         r["focus"] = focus_pattern[i % len(focus_pattern)]
 
-    # Save filtered + enriched output, keep original untouched
     out_path = path.with_name(path.stem + "_cleaned.csv")
     with out_path.open("w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(
             f,
-            fieldnames=["start", "stop", "name", "tier", "list", "focus"]
+            fieldnames=["start", "stop", "duration", "name", "tier", "list", "focus"]
         )
         writer.writeheader()
         writer.writerows(rows_out)

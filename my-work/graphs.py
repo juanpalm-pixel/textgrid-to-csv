@@ -3,154 +3,127 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from config import OUTPUT_GRAPHS, OUTPUT_CSV
 
-def focus_sort_key(focus: str) -> tuple[int, int | str]:
-	# Sort focus labels in a human-friendly order: BF, NF1, NF2, ...
-	# BF should always come first.
-	if focus == "BF":
-		return (0, 0)
-	# NF labels are sorted by their numeric suffix when possible.
-	if focus.startswith("NF"):
-		suffix = focus[2:]
-		return (1, int(suffix) if suffix.isdigit() else suffix)
-	# Any other labels are pushed to the end.
-	return (2, focus)
+
+FOCUS_ORDER = ["BF", "NF1", "NF2", "NF3", "NF4"]
+FOCUS_LABELS = {
+    "BF": "Broad Focus",
+    "NF1": "Narrow Focus 1",
+    "NF2": "Narrow Focus 2",
+    "NF3": "Narrow Focus 3",
+    "NF4": "Narrow Focus 4",
+}
 
 
-def save_plot(base_name: str, suffix: str, graph_number: int) -> Path:
-	# Save the current matplotlib figure using a numbered filename.
-	out_file = OUTPUT_GRAPHS / f"{graph_number:02d}_{base_name}_{suffix}.png"
-	plt.tight_layout()
-	plt.savefig(out_file, dpi=150)
-	plt.close()
-	print(f"Created {out_file}")
-	return out_file
+def focus_title(focus: str) -> str:
+    return FOCUS_LABELS.get(focus, focus)
 
 
-def plot_point_value_lines(frame: pd.DataFrame, base_name: str, graph_number: int) -> int:
-	# Plot x=point and y=value with one line per list for each focus group.
-	frame = frame.copy()
-	# Convert columns to numeric and drop rows that cannot be graphed.
-	frame["point"] = pd.to_numeric(frame["point"], errors="coerce")
-	frame["value"] = pd.to_numeric(frame["value"], errors="coerce")
-	frame["list"] = pd.to_numeric(frame["list"], errors="coerce")
-	frame = frame.dropna(subset=["focus", "point", "value", "list"]).copy()
-	frame["list"] = frame["list"].astype(int)
-
-	# Stable ordering across files and runs.
-	focus_values = sorted(frame["focus"].astype(str).unique(), key=focus_sort_key)
-	list_values = sorted(frame["list"].unique())
-
-	for focus in focus_values:
-		focus_data = frame[frame["focus"] == focus]
-		if focus_data.empty:
-			continue
-
-		plt.figure(figsize=(8, 5))
-		for list_id in list_values:
-			subset = focus_data[focus_data["list"] == list_id].sort_values("point")
-			if subset.empty:
-				continue
-			plt.plot(subset["point"], subset["value"], marker="o", label=f"list {list_id}")
-
-		plt.title(f"{base_name.upper()} - {focus}")
-		plt.xlabel("point")
-		plt.ylabel("value")
-		plt.grid(True, linestyle="--", alpha=0.35)
-		plt.legend()
-		save_plot(base_name, focus.lower(), graph_number)
-		graph_number += 1
-
-	return graph_number
+def save_fig(filename: str) -> None:
+    OUTPUT_GRAPHS.mkdir(parents=True, exist_ok=True)
+    out_file = OUTPUT_GRAPHS / filename
+    plt.tight_layout()
+    plt.savefig(out_file, dpi=150)
+    plt.close()
+    print(f"Created {out_file}")
 
 
-def plot_duration_lines(frame: pd.DataFrame, base_name: str, graph_number: int) -> int:
-	# Plot token durations (stop-start) with one line per list for each focus.
-	frame = frame.copy()
-	# Durations are derived from start/stop for token-based tiers.
-	frame["start"] = pd.to_numeric(frame["start"], errors="coerce")
-	frame["stop"] = pd.to_numeric(frame["stop"], errors="coerce")
-	frame["list"] = pd.to_numeric(frame["list"], errors="coerce")
-	frame = frame.dropna(subset=["focus", "name", "start", "stop", "list"]).copy()
-	frame["duration"] = frame["stop"] - frame["start"]
-	frame["list"] = frame["list"].astype(int)
+def plot_f0() -> int:
+    f0_path = OUTPUT_CSV / "F0_cleaned.csv"
+    if not f0_path.exists():
+        print(f"Skipping F0: missing {f0_path}")
+        return 1
 
-	focus_values = sorted(frame["focus"].astype(str).unique(), key=focus_sort_key)
-	list_values = sorted(frame["list"].unique())
+    df = pd.read_csv(f0_path)
+    df["point"] = pd.to_numeric(df["point"], errors="coerce")
+    df["value"] = pd.to_numeric(df["value"], errors="coerce")
+    df["list"] = pd.to_numeric(df["list"], errors="coerce")
+    df = df.dropna(subset=["focus", "point", "value", "list"]).copy()
+    df["point"] = df["point"].astype(int)
+    df["list"] = df["list"].astype(int)
 
-	for focus in focus_values:
-		focus_data = frame[frame["focus"] == focus]
-		if focus_data.empty:
-			continue
+    graph_number = 1
+    for focus in FOCUS_ORDER:
+        focus_df = df[df["focus"] == focus].copy()
+        if focus_df.empty:
+            continue
 
-		plt.figure(figsize=(9, 5))
-		# Keep label order as first-seen in this focus subset.
-		token_order = list(dict.fromkeys(focus_data["name"].astype(str)))
+        plt.figure(figsize=(8, 5))
+        for list_id in sorted(focus_df["list"].unique()):
+            subset = focus_df[focus_df["list"] == list_id].sort_values("point")
+            plt.plot(subset["point"], subset["value"], marker="o", label=f"List {list_id}")
 
-		for list_id in list_values:
-			subset = focus_data[focus_data["list"] == list_id].copy()
-			if subset.empty:
-				continue
+        plt.title(focus_title(focus))
+        plt.xlabel("Point ID")
+        plt.ylabel("f0 [Hz]")
+        plt.xticks(range(1, 11))
+        plt.xlim(0.5, 10.5)
+        plt.ylim(100, 375)
+        plt.grid(True, linestyle="--", alpha=0.35)
+        plt.legend()
 
-			subset["name"] = pd.Categorical(subset["name"], categories=token_order, ordered=True)
-			subset = subset.sort_values("name")
-			plt.plot(subset["name"], subset["duration"], marker="o", label=f"list {list_id}")
+        suffix = focus_title(focus).lower().replace(" ", "_")
+        save_fig(f"{graph_number:02d}_f0_{suffix}.png")
+        graph_number += 1
 
-		plt.title(f"{base_name.upper()} - {focus}")
-		plt.xlabel("token")
-		plt.ylabel("duration (s)")
-		plt.grid(True, axis="y", linestyle="--", alpha=0.35)
-		plt.legend()
-		save_plot(base_name, focus.lower(), graph_number)
-		graph_number += 1
-
-	return graph_number
+    return graph_number
 
 
-def plot_boundary_bar(frame: pd.DataFrame, base_name: str, graph_number: int) -> int:
-	# Plot a single bar chart for precomputed boundary durations.
-	frame = frame.copy()
-	frame["duration"] = pd.to_numeric(frame["duration"], errors="coerce")
-	frame = frame.dropna(subset=["name", "duration"]).copy()
-	if frame.empty:
-		return graph_number
+def plot_intensity(start_graph_number: int) -> None:
+    intensity_path = OUTPUT_CSV / "Intensity_cleaned.csv"
+    if not intensity_path.exists():
+        print(f"Skipping Intensity: missing {intensity_path}")
+        return
 
-	plt.figure(figsize=(8, 5))
-	plt.bar(frame["name"].astype(str), frame["duration"], color="#4472C4")
-	plt.title(f"{base_name.upper()} - Segment Durations")
-	plt.xlabel("segment")
-	plt.ylabel("duration (s)")
-	plt.grid(True, axis="y", linestyle="--", alpha=0.35)
-	save_plot(base_name, "durations", graph_number)
-	return graph_number + 1
+    df = pd.read_csv(intensity_path)
+    df["point"] = pd.to_numeric(df["point"], errors="coerce")
+    df["value"] = pd.to_numeric(df["value"], errors="coerce")
+    df["list"] = pd.to_numeric(df["list"], errors="coerce")
+    df = df.dropna(subset=["focus", "point", "value", "list"]).copy()
+    df["point"] = df["point"].astype(int)
+    df["list"] = df["list"].astype(int)
+
+    graph_number = start_graph_number
+    for focus in FOCUS_ORDER:
+        focus_df = df[df["focus"] == focus].copy()
+        if focus_df.empty:
+            continue
+
+        plt.figure(figsize=(8, 5))
+        for list_id in [1, 2, 3]:
+            subset = focus_df[focus_df["list"] == list_id].copy()
+
+            if subset.empty:
+                # Keep legend entry even when a list has no data in this focus
+                plt.plot([], [], marker="o", label=f"List {list_id}")
+                continue
+
+            # If multiple rows share the same point, collapse to one value per point
+            subset = (
+                subset.groupby("point", as_index=False)["value"]
+                .mean()
+                .sort_values("point")
+            )
+
+            plt.plot(subset["point"], subset["value"], marker="o", label=f"List {list_id}")
+
+        plt.title(focus_title(focus))
+        plt.xlabel("Point ID")
+        plt.ylabel("Intensity [dB]")
+        plt.xticks([11, 12, 13, 14])
+        plt.xlim(10.5, 14.5)
+        plt.ylim(78,88)
+        plt.grid(True, linestyle="--", alpha=0.35)
+        plt.legend()
+
+        suffix = focus_title(focus).lower().replace(" ", "_")
+        save_fig(f"{graph_number:02d}_intensity_{suffix}.png")
+        graph_number += 1
 
 
 def main() -> None:
-	# Discover cleaned CSV files and route each to the right graph function.
-	OUTPUT_GRAPHS.mkdir(parents=True, exist_ok=True)
-
-	# The script is schema-driven: each file is graphed by its available columns.
-	cleaned_files = sorted(OUTPUT_CSV.glob("*_cleaned.csv"))
-	if not cleaned_files:
-		raise FileNotFoundError("No *_cleaned.csv files found in output directory")
-
-	graph_number = 1
-	for csv_path in cleaned_files:
-		base_name = csv_path.stem.replace("_cleaned", "").replace(" ", "_").lower()
-		frame = pd.read_csv(csv_path)
-		columns = set(frame.columns)
-
-		# point/value schema (e.g., F0, Intensity)
-		if {"point", "value", "list", "focus"}.issubset(columns):
-			graph_number = plot_point_value_lines(frame, base_name, graph_number)
-		# token timing schema (e.g., PW, Syllable)
-		elif {"start", "stop", "name", "list", "focus"}.issubset(columns):
-			graph_number = plot_duration_lines(frame, base_name, graph_number)
-		# list-boundary summary schema
-		elif {"name", "duration"}.issubset(columns):
-			graph_number = plot_boundary_bar(frame, base_name, graph_number)
-		else:
-			print(f"Skipping {csv_path.name}: unsupported schema")
+    next_number = plot_f0()
+    plot_intensity(next_number)
 
 
 if __name__ == "__main__":
-	main()
+    main()
