@@ -91,7 +91,7 @@ FILES2 = [
     Path("output/csv/Syllable.csv"),  
 ]
 
-PW_ALLOWED = {"Wysłali", "dziecko", "na dwór", "bez czapki", "sła", "dziec", "na", "czap"}
+PW_ALLOWED = {"Wysłali", "dziecko", "na dwór", "bez czapki", "WYSŁALI", "DZIECKO", "NA DWÓR", "BEZ CZAPKI","sła", "dziec", "na", "czap"}
 
 for path in FILES2:
     rows_out = []
@@ -154,6 +154,10 @@ for input_path in FILES3:
             if re.fullmatch(r"\[\w*\]", label):
                 continue
 
+             # Remove List 1
+            if re.fullmatch(r"(?i)list\s*1", label):
+                continue
+
             start_val = float(row["start"])
             stop_val = float(row["stop"])
             duration_val = stop_val - start_val
@@ -163,6 +167,9 @@ for input_path in FILES3:
             row["stop"] = f"{stop_val:.3f}"
             row["duration"] = f"{duration_val:.3f}"
             rows_out.append(row)
+    # Rename remaining rows to List 1, List 2, ...
+    for i, row in enumerate(rows_out, start=1):
+        row["name"] = f"List {i}"
 
     output_path = input_path.with_name(f"{input_path.stem}_cleaned.csv")
     with output_path.open("w", newline="", encoding="utf-8-sig") as f:
