@@ -1,9 +1,10 @@
 import csv
 import re
 import textgrid
-from config import INPUT_FILE, OUTPUT_CSV
+from config import INPUT_DIR, OUTPUT_CSV
 
-tgrid = textgrid.read_textgrid(str(INPUT_FILE), fileEncoding="utf-16")
+tg_file = INPUT_DIR / "Focus-PL-4reps.TextGrid"
+tgrid = textgrid.read_textgrid(str(tg_file), fileEncoding="utf-16")
 print(tgrid[:3])
 
 OUTPUT_CSV.mkdir(parents=True, exist_ok=True)  # ensure output/csv exists
