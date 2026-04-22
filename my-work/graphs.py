@@ -2,6 +2,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from config import OUTPUT_GRAPHS, OUTPUT_CSV
 
+plt.rcParams.update({
+    "font.size": 16,         # base size
+    "axes.titlesize": 20,    # plot title
+    "axes.labelsize": 16,    # x/y label
+    "xtick.labelsize": 16,   # x tick labels
+    "ytick.labelsize": 16,   # y tick labels
+    "legend.fontsize": 16,   # legend text
+})
 
 FOCUS_ORDER = ["BF", "NF1", "NF2", "NF3", "NF4"]
 FOCUS_LABELS = {
@@ -211,8 +219,8 @@ def plot_stacked_duration_horizontal(
                     width=width,
                     left=left,
                     color=LIST_COLORS.get(list_id),
-                    edgecolor="white",
-                    linewidth=1.0,
+                    edgecolor="black",
+                    linewidth=1.5,
                     alpha=0.9,
                 )
 
@@ -223,7 +231,7 @@ def plot_stacked_duration_horizontal(
                         f"{int(dur)} ms",
                         ha="center",
                         va="center",
-                        fontsize=8,
+                        fontsize=20,
                         color="black",
                     )
 
